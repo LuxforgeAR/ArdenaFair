@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<title>Diagnose — models.json</title>
+<style>body{font-family:system-ui;margin:24px;line-height:1.4}</style>
+<h1>Diagnose: models.json</h1>
+<p>Dieser Test lädt <code>models/models.json</code> und zeigt gefundene Einträge.</p>
+<pre id="log">Lade…</pre>
+<ul id="list"></ul>
+<script>
+(async () => {
+  const log = document.getElementById('log');
+  const list = document.getElementById('list');
+  try {
+    const res = await fetch('models/models.json', {cache:'no-cache'});
+    log.textContent = 'HTTP-Status: ' + res.status + ' ' + res.statusText;
+    const data = await res.json();
+    log.textContent += '\nEinträge: ' + (Array.isArray(data) ? data.length : '—');
+    if (Array.isArray(data)) {
+      data.forEach(it => {
+        const li = document.createElement('li');
+        li.textContent = `${it.id} — glb=${it.glb || '—'} usdz=${it.usdz || '—'}`;
+        list.appendChild(li);
+      });
+    } else {
+      log.textContent += '\n⚠️ JSON ist kein Array.';
+    }
+  } catch (e) {
+    log.textContent += '\nFehler: ' + e.message;
+  }
+})();
+</script>

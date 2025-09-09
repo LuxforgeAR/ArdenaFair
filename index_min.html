@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AR Mehrfach – Minimal</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>body{font-family:system-ui;margin:0}main{max-width:1000px;margin:0 auto;padding:16px}aside{padding:12px;border:1px solid #ddd;border-radius:10px}model-viewer{width:100%;height:65vh;background:#f4f4f5;border-radius:12px}</style>
+</head>
+<body>
+<main>
+  <h1>Mehrere Modelle</h1>
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start">
+    <div>
+      <model-viewer id="mv" src="" ar ar-modes="webxr scene-viewer quick-look" camera-controls auto-rotate>
+        <button slot="ar-button">In AR ansehen</button>
+      </model-viewer>
+      <p>Scene Viewer URL: <code id="sv"></code></p>
+    </div>
+    <aside>
+      <strong>Modelle</strong>
+      <ul id="list"></ul>
+    </aside>
+  </div>
+</main>
+<script>
+const list = document.getElementById('list');
+const mv = document.getElementById('mv');
+const sv = document.getElementById('sv');
+const enc = s => encodeURIComponent(s);
+const svUrl = u => `https://arvr.google.com/scene-viewer/1.0?file=${enc(u)}&mode=ar_preferred`;
+
+let items = [];
+function setActive(id){
+  const it = items.find(x=>x.id===id); if(!it) return;
+  const glb = new URL(it.glb, location.href).toString();
+  mv.src = glb;
+  if(it.usdz){ mv.setAttribute('ios-src', new URL(it.usdz, location.href).toString()); } else { mv.removeAttribute('ios-src'); }
+  sv.textContent = svUrl(glb);
+  const url = new URL(location.href); url.searchParams.set('m', id); history.replaceState(null,'',url);
+}
+
+(async () => {
+  const res = await fetch('models/models.json', {cache:'no-cache'});
+  items = await res.json();
+  list.innerHTML = '';
+  items.forEach(it=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="#" data-id="${it.id}">${it.name||it.id}</a>`;
+    li.querySelector('a').onclick = (e)=>{e.preventDefault(); setActive(it.id);};
+    list.appendChild(li);
+  });
+  const m = new URL(location.href).searchParams.get('m');
+  setActive(m && items.some(i=>i.id===m) ? m : items[0]?.id);
+})().catch(e=>{
+  document.body.innerHTML = '<pre style="padding:16px;color:#b91c1c">Fehler: '+e.message+'</pre>';
+});
+</script>
+</body>
+</html>
