@@ -1,137 +1,60 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR-GLB Host – Mehrere Modelle</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    :root { --bg: #ffffff; --muted: #f4f4f5; --text: #111827; --sub: #52525b; }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif;
-           margin: 0; color: var(--text); background: var(--bg); }
-    header, footer { padding: 16px; }
-    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
-    model-viewer { width: 100%; height: 65vh; background: var(--muted); border-radius: 16px; }
-    .row { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
-    .panel { border: 1px solid #e4e4e7; border-radius: 12px; padding: 12px; background: #fff; }
-    .list { max-height: 65vh; overflow: auto; }
-    .item { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; cursor: pointer; }
-    .item:hover { background: #f8fafc; }
-    .item.active { background: #eef2ff; border: 1px solid #c7d2fe; }
-    .name { font-weight: 600; }
-    .meta { font-size: 12px; color: var(--sub); }
-    .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .button { padding: 8px 12px; border-radius: 10px; border: 1px solid #d4d4d8; background: #fff; cursor: pointer; text-decoration: none; color: #000; font-size: 14px; }
-    code { background: #f4f4f5; padding: 2px 6px; border-radius: 6px; }
-    pre { background: #f8fafc; padding: 10px; border-radius: 10px; overflow: auto; }
-    .note { color: var(--sub); font-size: 14px; }
-    @media (max-width: 900px) { .row { grid-template-columns: 1fr; } .list { max-height: none; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AR Mehrfach – Minimal</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>body{font-family:system-ui;margin:0}main{max-width:1000px;margin:0 auto;padding:16px}aside{padding:12px;border:1px solid #ddd;border-radius:10px}model-viewer{width:100%;height:65vh;background:#f4f4f5;border-radius:12px}</style>
 </head>
 <body>
-  <header>
-    <h1>Mehrere 3D-Modelle (GLB) mit AR</h1>
-    <p class="note">Legen Sie Ihre Dateien in <code>/models/</code> ab und tragen Sie sie in <code>/models/models.json</code> ein.</p>
-  </header>
-  <main>
-    <div class="row">
-      <div class="panel">
-        <model-viewer id="mv"
-          src=""
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          camera-controls
-          shadow-intensity="0.9"
-          auto-rotate
-          style="--poster-color: #f4f4f5;">
-          <button slot="ar-button" class="button">In AR ansehen</button>
-        </model-viewer>
-        <div class="actions">
-          <a id="openSceneViewer" class="button" href="#" rel="ar" target="_blank">AR direkt (Scene Viewer)</a>
-          <a id="downloadGlb" class="button" href="#" download>GLB herunterladen</a>
-          <a id="quickLook" class="button" href="#" target="_blank" style="display:none">iOS Quick Look</a>
-        </div>
-        <h3>Direktlink/QR-Vorlage</h3>
-        <pre><code id="sceneViewerUrl"></code></pre>
-      </div>
-      <aside class="panel list">
-        <div id="list"></div>
-      </aside>
+<main>
+  <h1>Mehrere Modelle</h1>
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start">
+    <div>
+      <model-viewer id="mv" src="" ar ar-modes="webxr scene-viewer quick-look" camera-controls auto-rotate>
+        <button slot="ar-button">In AR ansehen</button>
+      </model-viewer>
+      <p>Scene Viewer URL: <code id="sv"></code></p>
     </div>
-  </main>
-  <footer>
-    <small>Bearbeiten Sie <code>models/models.json</code>, um Einträge hinzuzufügen. Optional können Sie zu jedem GLB ein gleichnamiges USDZ angeben.</small>
-  </footer>
+    <aside>
+      <strong>Modelle</strong>
+      <ul id="list"></ul>
+    </aside>
+  </div>
+</main>
+<script>
+const list = document.getElementById('list');
+const mv = document.getElementById('mv');
+const sv = document.getElementById('sv');
+const enc = s => encodeURIComponent(s);
+const svUrl = u => `https://arvr.google.com/scene-viewer/1.0?file=${enc(u)}&mode=ar_preferred`;
 
-  <script>
-    const listEl = document.getElementById('list');
-    const mv = document.getElementById('mv');
-    const aScene = document.getElementById('openSceneViewer');
-    const aGlb = document.getElementById('downloadGlb');
-    const aUsdz = document.getElementById('quickLook');
-    const sceneViewerCode = document.getElementById('sceneViewerUrl');
+let items = [];
+function setActive(id){
+  const it = items.find(x=>x.id===id); if(!it) return;
+  const glb = new URL(it.glb, location.href).toString();
+  mv.src = glb;
+  if(it.usdz){ mv.setAttribute('ios-src', new URL(it.usdz, location.href).toString()); } else { mv.removeAttribute('ios-src'); }
+  sv.textContent = svUrl(glb);
+  const url = new URL(location.href); url.searchParams.set('m', id); history.replaceState(null,'',url);
+}
 
-    let items = [];
-    let activeId = null;
-
-    function buildSceneViewerUrl(glbUrl) {
-      return `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(glbUrl)}&mode=ar_preferred`;
-    }
-
-    function setActive(id) {
-      const item = items.find(x => x.id === id);
-      if (!item) return;
-      activeId = id;
-
-      document.querySelectorAll('.item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
-
-      const glbUrl = new URL(item.glb, window.location.href).toString();
-      mv.src = glbUrl;
-
-      if (item.usdz) {
-        const usdzUrl = new URL(item.usdz, window.location.href).toString();
-        mv.setAttribute('ios-src', usdzUrl);
-        aUsdz.href = usdzUrl;
-        aUsdz.style.display = 'inline-block';
-      } else {
-        mv.removeAttribute('ios-src');
-        aUsdz.style.display = 'none';
-      }
-
-      aGlb.href = glbUrl;
-      const sceneUrl = buildSceneViewerUrl(glbUrl);
-      aScene.href = sceneUrl;
-      sceneViewerCode.textContent = sceneUrl;
-
-      const url = new URL(window.location.href);
-      url.searchParams.set('m', id);
-      history.replaceState(null, '', url.toString());
-    }
-
-    function renderList() {
-      listEl.innerHTML = '';
-      for (const it of items) {
-        const el = document.createElement('div');
-        el.className = 'item';
-        el.dataset.id = it.id;
-        el.innerHTML = `<div class="name">${it.name || it.id}</div>
-                        <div class="meta">${it.glb}${it.usdz ? " • iOS" : ""}</div>`;
-        el.addEventListener('click', () => setActive(it.id));
-        listEl.appendChild(el);
-      }
-    }
-
-    async function load() {
-      const res = await fetch('models/models.json', {cache: 'no-cache'});
-      items = await res.json();
-      renderList();
-      const url = new URL(window.location.href);
-      const param = url.searchParams.get('m');
-      setActive(param && items.some(i=>i.id===param) ? param : items[0]?.id);
-    }
-
-    load();
-  </script>
+(async () => {
+  const res = await fetch('models/models.json', {cache:'no-cache'});
+  items = await res.json();
+  list.innerHTML = '';
+  items.forEach(it=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="#" data-id="${it.id}">${it.name||it.id}</a>`;
+    li.querySelector('a').onclick = (e)=>{e.preventDefault(); setActive(it.id);};
+    list.appendChild(li);
+  });
+  const m = new URL(location.href).searchParams.get('m');
+  setActive(m && items.some(i=>i.id===m) ? m : items[0]?.id);
+})().catch(e=>{
+  document.body.innerHTML = '<pre style="padding:16px;color:#b91c1c">Fehler: '+e.message+'</pre>';
+});
+</script>
 </body>
 </html>
