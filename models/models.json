@@ -1,8 +1,9 @@
 [
   {
-    "id": "Grill_889381",
-    "name": "Grill_889381",
-    "glb": "models/Grill_889381.glb"
+    "id": "Ardena_Grill",
+    "name": "Ardena_Grill",
+    "glb": "models/Ardena_Grill.glb"
+    "usdz": "models/Ardena_Grill.usdz"
   },
   {
     "id": "Briefkasten_Torkatalog",
