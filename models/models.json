@@ -2,13 +2,12 @@
   {
     "id": "Ardena_Grill",
     "name": "Ardena_Grill",
-    "glb": "models/Ardena_Grill.glb"
+    "glb": "models/Ardena_Grill.glb",
     "usdz": "models/Ardena_Grill.usdz"
   },
   {
     "id": "Briefkasten_Torkatalog",
     "name": "Briefkasten_Torkatalog",
-    "glb": "models/Briefkasten_Torkatalog.glb",
-    "usdz": "models/Briefkasten_Torkatalog.usdz"
+    "glb": "models/Briefkasten_Torkatalog.glb"
   }
 ]
