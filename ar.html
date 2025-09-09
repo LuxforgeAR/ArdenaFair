@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR Router</title>
+  <style>body{font-family:system-ui;margin:24px;line-height:1.4}</style>
+</head>
+<body>
+  <noscript>Diese Seite benötigt JavaScript für die automatische Weiterleitung.</noscript>
+  <div id="msg">Weiterleitung wird vorbereitet…</div>
+<script>
+(async () => {
+  const log = (t) => { const el = document.getElementById('msg'); if (el) el.textContent = t; };
+  try {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get('m');
+    if (!id) { window.location.replace('index.html'); return; }
+
+    const res = await fetch('models/models.json', {cache:'no-cache'});
+    if (!res.ok) throw new Error('models.json nicht gefunden (' + res.status + ')');
+    const list = await res.json();
+    const item = Array.isArray(list) ? list.find(x => x.id === id) : null;
+    if (!item) throw new Error('Modell-ID nicht gefunden: ' + id);
+
+    const glb = new URL(item.glb, window.location.href).toString();
+    const usdz = item.usdz ? new URL(item.usdz, window.location.href).toString() : null;
+
+    const ua = navigator.userAgent || '';
+    const isiOS = /iPad|iPhone|iPod/.test(ua);
+    const isAndroid = /Android/.test(ua);
+
+    // iOS mit USDZ → Quick Look via <a rel="ar">; ansonsten Fallback
+    if (isiOS && usdz) {
+      const a = document.createElement('a');
+      a.setAttribute('rel', 'ar');
+      a.setAttribute('href', usdz);
+      document.body.appendChild(a);
+      a.click();
+      log('iOS Quick Look wird geöffnet…');
+      return;
+    }
+
+    // Android → Scene Viewer mit GLB
+    if (isAndroid) {
+      const scene = 'https://arvr.google.com/scene-viewer/1.0?file=' + encodeURIComponent(glb) + '&mode=ar_preferred';
+      window.location.replace(scene);
+      return;
+    }
+
+    // Desktop / sonst: bevorzugt USDZ, sonst GLB
+    if (usdz) { window.location.replace(usdz); return; }
+    window.location.replace(glb);
+  } catch (e) {
+    document.body.innerHTML = '<pre style="color:#b91c1c">Fehler: ' + e.message + '\n' +
+      'URL-Parameter m, models.json und Pfade prüfen.</pre>';
+  }
+})();
+</script>
+</body>
+</html>
